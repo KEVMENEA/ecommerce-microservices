@@ -1,0 +1,108 @@
+services:
+
+  api-gateway:
+    build: ../../apigateway
+    container_name: api-gateway
+    ports:
+      - "8080:8080"
+
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+
+    depends_on:
+      - product-service
+      - user-service
+
+    networks:
+      - ecommerce-network
+
+
+  product-service:
+    build: ../../product-service
+    container_name: product-service
+
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+
+    depends_on:
+      product-db:
+        condition: service_healthy
+
+    networks:
+      - ecommerce-network
+
+
+  user-service:
+    build: ../../user-service
+    container_name: user-service
+
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: jdbc:postgresql://user-db:5432/user_db
+
+    depends_on:
+      user-db:
+        condition: service_healthy
+
+    networks:
+      - ecommerce-network
+
+
+  product-db:
+    image: postgres:17
+    container_name: product-db
+
+    ports:
+      - "5434:5432"
+
+    environment:
+      POSTGRES_DB: product_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 123
+
+    volumes:
+      - product-db-data:/var/lib/postgresql/data
+
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres -d product_db" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+    networks:
+      - ecommerce-network
+
+
+  user-db:
+    image: postgres:17
+    container_name: user-db
+
+    ports:
+      - "5433:5432"
+
+    environment:
+      POSTGRES_DB: user_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 123
+
+    volumes:
+      - user-db-data:/var/lib/postgresql/data
+
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres -d user_db" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+    networks:
+      - ecommerce-network
+
+
+volumes:
+  product-db-data:
+  user-db-data:
+
+
+networks:
+  ecommerce-network:
+    driver: bridge
