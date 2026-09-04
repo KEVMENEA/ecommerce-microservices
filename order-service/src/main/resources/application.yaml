@@ -1,0 +1,52 @@
+server:
+  port: 8084
+
+spring:
+  application:
+    name: order-service
+
+  config:
+    import: optional:configserver:http://localhost:8888
+
+  datasource:
+    url: jdbc:postgresql://localhost:5433/order_service
+    username: postgres
+    password: 123
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+
+  flyway:
+    enabled: true
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      inventoryService:
+        registerHealthIndicator: true
+        slidingWindowType: COUNT_BASED
+        slidingWindowSize: 10              # Tracks the last 10 requests
+        minimumNumberOfCalls: 5            # Minimum requests needed before calculating failure rate
+        failureRateThreshold: 50           # Opens circuit if 50% or more requests fail
+        waitDurationInOpenState: 10s       # Waits 10 seconds in OPEN state before trying again
+        permittedNumberOfCallsInHalfOpenState: 3 # Allows 3 sample requests in HALF_OPEN state
+        automaticTransitionFromOpenToHalfOpenEnabled:
+        ignore-exceptions:
+          - org.springframework.web.client.HttpClientErrorException
+
+
+
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: http://localhost:8761/eureka/
+    fetch-registry: true
+    register-with-eureka: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
