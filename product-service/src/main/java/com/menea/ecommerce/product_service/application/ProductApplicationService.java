@@ -11,6 +11,7 @@ import com.menea.ecommerce.product_service.exception.DuplicateSkuException;
 import com.menea.ecommerce.product_service.exception.ProductNotFoundException;
 import com.menea.ecommerce.product_service.mapper.ProductMapper;
 
+import org.springframework.cache.annotation.Cacheable;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 
@@ -50,6 +51,10 @@ public class ProductApplicationService {
 
 
     // GET BY ID
+    @Cacheable(
+            value = "products",
+            key = "#id"
+    )
     @Transactional
     public ProductResponse getProductById(UUID id) {
 

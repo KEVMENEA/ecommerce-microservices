@@ -30,8 +30,7 @@ public class UserApplicationService {
     @Transactional
     public UserResponse register(RegisterUserRequest request) {
 
-        String normalizedEmail =
-                request.email()
+        String normalizedEmail = request.email()
                         .trim()
                         .toLowerCase();
 
@@ -60,6 +59,17 @@ public class UserApplicationService {
                 .findById(id)
                 .orElseThrow(
                         () -> new UserNotFoundException(id)
+                );
+
+        return userMapper.toResponse(user);
+    }
+
+    public UserResponse getByKeycloakId(String keycloakId) {
+        User user = userRepository.findByKeycloakId(keycloakId)
+                .orElseThrow(() ->
+                        new UserNotFoundException(
+                                "User not found for Keycloak id: " + keycloakId
+                        )
                 );
 
         return userMapper.toResponse(user);

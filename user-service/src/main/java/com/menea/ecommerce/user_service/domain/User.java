@@ -36,6 +36,9 @@ public class User {
     @Column(nullable = false, length = 30)
     private UserStatus status;
 
+    @Column(name = "keycloak_id", unique = true)
+    private String keycloakId;
+
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(
             name = "user_roles",

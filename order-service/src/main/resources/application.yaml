@@ -5,8 +5,17 @@ spring:
   application:
     name: order-service
 
+#   order-service-consumer
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id:  order-service-consumer
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+
   config:
-    import: optional:configserver:http://localhost:8888
+    import: "optional:configserver:http://localhost:8888"
 
   datasource:
     url: jdbc:postgresql://localhost:5433/order_service
@@ -49,4 +58,30 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info
+        include:
+          - health
+          - info
+          - prometheus
+          - metrics
+  tracing:
+    sampling:
+      probability: 1.0
+
+  otlp:
+    metrics:
+      export:
+        enabled: false
+
+  opentelemetry:
+    tracing:
+      export:
+        otlp:
+          endpoint: http://localhost:4318/v1/traces
+
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  pattern:
+    correlation: "[${spring.application.name:unknown},%X{traceId:-},%X{spanId:-}] "

@@ -42,9 +42,9 @@ public class OrderController {
 
     @PostMapping("/{orderUuid}/inventory/confirm")
     public OrderResponse confirmInventory(
-            @PathVariable UUID orderUuid
+            @PathVariable UUID orderUuid, String reason
     ) {
-        return service.confirmInventory(orderUuid);
+        return service.confirmInventory(orderUuid,  reason);
     }
 
     @PostMapping("/{orderUuid}/inventory/release")

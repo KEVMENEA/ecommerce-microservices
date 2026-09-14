@@ -2,6 +2,7 @@ package com.ecommerce.order_service.application;
 
 import com.ecommerce.order_service.api.dto.request.CreateOrderItemRequest;
 import com.ecommerce.order_service.api.dto.request.CreateOrderRequest;
+import com.ecommerce.order_service.api.dto.request.OrderInventoryReservationStatus;
 import com.ecommerce.order_service.api.dto.response.OrderResponse;
 import com.ecommerce.order_service.client.inventory.InventoryReservationRequest;
 import com.ecommerce.order_service.client.inventory.InventoryReservationResponse;
@@ -9,6 +10,8 @@ import com.ecommerce.order_service.client.inventory.ResilientInventoryClient;
 import com.ecommerce.order_service.domain.*;
 import com.ecommerce.order_service.exception.OrderNotFoundException;
 import com.ecommerce.order_service.mapper.OrderMapper;
+import com.ecommerce.order_service.outbox.OrderCreatedEvent;
+import com.ecommerce.order_service.outbox.OutboxService;
 import com.ecommerce.order_service.repository.OrderInventoryReservationRepository;
 import com.ecommerce.order_service.repository.OrderRepository;
 import com.ecommerce.order_service.repository.OrderSagaRepository;
@@ -29,8 +32,8 @@ public class OrderApplicationService {
     private final OrderStatusHistoryRepository statusHistoryRepository;
     private final OrderSagaRepository sagaRepository;
     private final OrderMapper mapper;
-    private final OrderInventoryReservationRepository
-            orderInventoryReservationRepository;
+    private final OrderInventoryReservationRepository orderInventoryReservationRepository;
+    private final OutboxService outboxService;
 
     private final ResilientInventoryClient inventoryClient;
 
@@ -105,7 +108,6 @@ public class OrderApplicationService {
             order.addItem(item);
         }
 
-        // 10. Save order
         Order savedOrder = orderRepository.save(order);
 
         // 11. Save initial status history
@@ -149,8 +151,6 @@ public class OrderApplicationService {
                 }
 
                 // Remember UUID for possible compensation
-                // ---------------------------------------------
-
                 successfulReservationUuids.add(
                         reservationResponse.reservationUuid()
                 );
@@ -167,7 +167,7 @@ public class OrderApplicationService {
 
                 orderInventoryReservationRepository.save(tracking);
 
-                // Keep existing Saga behavior for now
+                // Transitional Saga behavior for now
                 saga.inventoryReserved(
                         reservationResponse.reservationUuid()
                 );
@@ -178,22 +178,32 @@ public class OrderApplicationService {
 
             savedOrder.markInventoryReserved();
 
-            // 15. Save status history
+            // Save inventory-reserved status history
             OrderStatusHistory inventoryReservedHistory =
                     new OrderStatusHistory(
                             savedOrder,
                             previousStatus,
                             savedOrder.getStatus(),
-                            "Inventory reserved"
+                            "Inventory reserved successfully"
                     );
 
-            statusHistoryRepository.save(
-                    inventoryReservedHistory
-            );
-            Order updatedOrder =
-                    orderRepository.save(savedOrder);
+            statusHistoryRepository.save(inventoryReservedHistory);
 
-            return mapper.toResponse(updatedOrder);
+            // Save ORDER_CREATED event into outbox
+            OrderCreatedEvent event = new OrderCreatedEvent(
+                    savedOrder.getOrderUuid(),
+                    savedOrder.getOrderNumber(),
+                    savedOrder.getUserId(),
+                    savedOrder.getFinalAmount()
+            );
+
+            outboxService.saveOrderCreatedEvent(event);
+
+            // Explicit save is optional because savedOrder is managed,
+            // but keeping it here is fine and clear.
+            orderRepository.save(savedOrder);
+
+            return mapper.toResponse(savedOrder);
 
         } catch (Exception originalException) {
 
@@ -224,7 +234,7 @@ public class OrderApplicationService {
 
 
     @Transactional
-    public OrderResponse confirmInventory(UUID orderUuid) {
+    public OrderResponse confirmInventory(UUID orderUuid, String reason) {
 
         Order order = findOrderByUuid(orderUuid);
 
@@ -235,34 +245,45 @@ public class OrderApplicationService {
                         )
                 );
 
-        UUID reservationUuid = saga.getInventoryReservationUuid();
+        List<OrderInventoryReservation> reservations =
+                orderInventoryReservationRepository.findByOrder(order);
 
-        if (reservationUuid == null) {
+        if (reservations.isEmpty()) {
             throw new IllegalStateException(
-                    "Inventory reservation UUID not found for order: "
-                            + orderUuid
+                    "No inventory reservations found for order: " + orderUuid
             );
         }
 
-        saga.inventoryConfirmationPending();
+        for (OrderInventoryReservation reservation : reservations) {
 
-        InventoryReservationResponse response =
-                inventoryClient.confirm(reservationUuid);
+            if (reservation.getStatus()
+                    != OrderInventoryReservationStatus.RESERVED) {
+                continue;
+            }
 
-        if (!"CONFIRMED".equalsIgnoreCase(response.status())) {
-            throw new IllegalStateException(
-                    "Inventory confirmation failed for reservation: "
-                            + reservationUuid
-            );
+            InventoryReservationResponse response =
+                    inventoryClient.confirm(
+                            reservation.getReservationUuid()
+                    );
+
+            if (!"CONFIRMED".equalsIgnoreCase(response.status())) {
+                throw new IllegalStateException(
+                        "Inventory confirmation failed for reservation: "
+                                + reservation.getReservationUuid()
+                );
+            }
+
+            reservation.markConfirmed();
         }
 
+        // All Inventory reservations succeeded
         saga.inventoryConfirmed();
+        saga.complete();
 
         sagaRepository.save(saga);
 
         return mapper.toResponse(order);
     }
-
     @Transactional
     public OrderResponse releaseInventory(
             UUID orderUuid,
@@ -278,28 +299,43 @@ public class OrderApplicationService {
                         )
                 );
 
-        UUID reservationUuid = saga.getInventoryReservationUuid();
+        List<OrderInventoryReservation> reservations =
+                orderInventoryReservationRepository.findByOrder(order);
 
-        if (reservationUuid == null) {
+        if (reservations.isEmpty()) {
             throw new IllegalStateException(
-                    "Inventory reservation UUID not found for order: "
+                    "No inventory reservations found for order: "
                             + orderUuid
             );
         }
 
         saga.startCompensation(reason);
 
-        InventoryReservationResponse response =
-                inventoryClient.release(reservationUuid);
+        for (OrderInventoryReservation reservation : reservations) {
 
-        if (!"RELEASED".equalsIgnoreCase(response.status())) {
-            throw new IllegalStateException(
-                    "Inventory release failed for reservation: "
-                            + reservationUuid
-            );
+            if (reservation.getStatus()
+                    != OrderInventoryReservationStatus.RESERVED) {
+                continue;
+            }
+
+            InventoryReservationResponse response =
+                    inventoryClient.release(
+                            reservation.getReservationUuid()
+                    );
+
+            if (!"RELEASED".equalsIgnoreCase(response.status())) {
+                throw new IllegalStateException(
+                        "Inventory release failed for reservation: "
+                                + reservation.getReservationUuid()
+                );
+            }
+
+            reservation.markReleased();
         }
 
+        // All compensation completed
         saga.inventoryReleased();
+        saga.markFailed(reason);
 
         sagaRepository.save(saga);
 

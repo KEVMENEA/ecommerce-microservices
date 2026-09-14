@@ -1,4 +1,20 @@
 package com.ecommerce.inventory.inventory_service.api.dto;
 
-public class WarehouseResponse {
+import java.time.LocalDateTime;
+
+public record WarehouseResponse(
+
+        Long id,
+
+        String name,
+
+        String code,
+
+        String address,
+
+        String status,
+
+        LocalDateTime createdAt
+
+) {
 }

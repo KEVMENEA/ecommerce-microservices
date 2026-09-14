@@ -49,7 +49,10 @@ public class OrderSaga {
     }
 
     public void inventoryReservationPending() {
-        moveTo(SagaStep.INVENTORY_RESERVATION_PENDING, SagaStatus.IN_PROGRESS);
+        moveTo(
+                SagaStep.INVENTORY_RESERVATION_PENDING,
+                SagaStatus.IN_PROGRESS
+        );
     }
 
     public void inventoryReserved(UUID reservationUuid) {
@@ -70,15 +73,34 @@ public class OrderSaga {
     }
 
     public void inventoryConfirmationPending() {
-        currentStep = SagaStep.INVENTORY_CONFIRMATION_PENDING;
+        moveTo(
+                SagaStep.INVENTORY_CONFIRMATION_PENDING,
+                SagaStatus.IN_PROGRESS
+
+        );
+
     }
 
     public void inventoryConfirmed() {
-        currentStep = SagaStep.INVENTORY_CONFIRMED;
+        moveTo(
+                 SagaStep.INVENTORY_CONFIRMED,
+                SagaStatus.IN_PROGRESS
+        );
+
+    }
+    public void inventoryReleased() {
+        // state of the Order Saga.
+        moveTo(
+                SagaStep.INVENTORY_RELEASED,
+                SagaStatus.COMPENSATING
+        );
     }
 
+
     public void complete() {
-        moveTo(SagaStep.COMPLETED, SagaStatus.COMPLETED);
+        moveTo(
+                SagaStep.COMPLETED,
+                SagaStatus.COMPLETED);
     }
 
     public void startCompensation(String reason) {
@@ -86,13 +108,11 @@ public class OrderSaga {
         moveTo(SagaStep.COMPENSATION_PENDING, SagaStatus.COMPENSATING);
     }
 
-    public void inventoryReleased() {
-        currentStep = SagaStep.INVENTORY_RELEASED;
-    }
 
-    public void fail(String reason) {
-        failureReason = reason;
-        moveTo(SagaStep.FAILED, SagaStatus.FAILED);
+    public void markFailed(String reason) {
+        this.sagaStatus = SagaStatus.FAILED;
+        this.currentStep = SagaStep.valueOf("INVENTORY_RELEASED");
+        this.failureReason = reason;
     }
 
     private void moveTo(SagaStep step, SagaStatus status) {

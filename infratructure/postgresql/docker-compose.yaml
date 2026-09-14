@@ -23,6 +23,10 @@ services:
 
     environment:
       SPRING_PROFILES_ACTIVE: docker
+      EUREKA_URL: http://host.docker.internal:8761/eureka/
+
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
     depends_on:
       product-db:
@@ -94,6 +98,31 @@ services:
       timeout: 5s
       retries: 10
 
+    networks:
+      - ecommerce-network
+
+
+  jaeger:
+    image: cr.jaegertracing.io/jaegertracing/jaeger:2.20.0
+    container_name: jaeger
+    ports:
+      - "16686:16686" # Jaeger UI
+      - "4319:4317"   # OTLP gRpC receiver
+      - "4320:4318"    # OTLP HTTP receiver
+    networks:
+      - ecommerce-network
+
+  otel-collector:
+    image: otel/opentelemetry-collector:0.160.0
+    container_name: otel-collector
+    command: [ "--config=/etc/otelcol/config.yaml" ]
+    volumes:
+      - ./otel-collector-config.yml:/etc/otelcol/config.yaml
+    ports:
+      - "4317:4317"
+      - "4318:4318"
+    depends_on:
+      - jaeger
     networks:
       - ecommerce-network
 

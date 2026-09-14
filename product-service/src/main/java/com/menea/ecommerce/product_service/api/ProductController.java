@@ -8,6 +8,7 @@ import com.menea.ecommerce.product_service.application.ProductApplicationService
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
@@ -20,6 +21,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/v1/products")
 @RequiredArgsConstructor
+@Slf4j
 public class ProductController {
 
     private final ProductApplicationService productService;
@@ -40,6 +42,7 @@ public class ProductController {
     public ProductResponse getProductById(
             @PathVariable UUID id
     ) {
+        log.info("Loading product {} from PostgreSQL", id);
         return productService.getProductById(id);
     }
 

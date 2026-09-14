@@ -1,19 +1,55 @@
-#server:
-#  port: 8080
-#
-#spring:
-#  application:
-#    name: api-gateway
-#
-#  cloud:
-#    gateway:
-#      routes:
-#        - id: product-service
-#          uri: http://product-service:8082
-#          predicates:
-#            - Path=/api/v1/products/**
-#
-#        - id: user-service
-#          uri: http://user-service:8081
-#          predicates:
-#            - Path=/api/v1/users/**
+server:
+  port: 8080
+
+spring:
+  application:
+    name: api-gateway
+  config:
+    import: optional:configserver:http://localhost:8888
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: https://localhost:8180/realms/ecommerce
+
+  cloud:
+    gateway:
+      server:
+        webflux:
+          routes:
+            - id: product-service
+              uri: http://product-service:8082
+              predicates:
+                - Path=/api/v1/products/**
+
+            - id: user-service
+              uri: http://user-service:8081
+              predicates:
+                - Path=/api/v1/users/**
+
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: http://localhost:8761/eureka/
+
+#keycloak:
+#  server-url: http://localhost:8180
+#  realm: ecommerce
+#  client-id: ecommerce
+#  client-secret: cm8WGw8rFKTyO94iJiU6bkHTXeyIakIL
+
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include:
+          - health
+          - info
+          - prometheus
+          - metrics
+
+  endpoint:
+    health:
+      show-details: always

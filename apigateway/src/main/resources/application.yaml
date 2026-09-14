@@ -5,21 +5,83 @@ spring:
   application:
     name: api-gateway
 
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: https://auth.meneakevit.store/realms/ecommerce
+  config:
+    import: "optional:configserver:http://localhost:8888"
+
   cloud:
     gateway:
       server:
         webflux:
           routes:
             - id: product-service
-              uri: http://product-service:8082
+              uri: lb://product-service
               predicates:
                 - Path=/api/v1/products/**
+            - id: order-service
+              uri: lb://order-service
+              predicates:
+                - Path=/api/v1/orders/**
 
             - id: user-service
-              uri: http://user-service:8081
+              uri: lb://user-service
               predicates:
                 - Path=/api/v1/users/**
 
+            - id: inventory-service
+              uri: lb://inventory-service
+              predicates:
+                  - Path=/api/v1/inventories/**
+
+            - id: warehouse-service-route
+              uri: lb://inventory-service
+              predicates:
+                  - Path=/api/v1/warehouses/**
 eureka:
   client:
-    enabled: false
+    serviceUrl:
+      defaultZone: http://localhost:8761/eureka/
+
+
+#keycloak:
+#  server-url: http://localhost:8180
+#  realm: ecommerce
+#  client-id: ecommerce
+#  client-secret: cm8WGw8rFKTyO94iJiU6bkHTXeyIakIL
+
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include:
+          - health
+          - info
+          - prometheus
+          - metrics
+  tracing:
+    sampling:
+      probability: 1.0
+
+  otlp:
+    metrics:
+      export:
+        enabled: false
+
+  opentelemetry:
+    tracing:
+      export:
+        otlp:
+          endpoint: http://localhost:4318/v1/traces
+
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  pattern:
+    correlation: "[${spring.application.name:unknown},%X{traceId:-},%X{spanId:-}] "

@@ -61,11 +61,15 @@ public class OrderInventoryReservation {
     }
 
     public void markConfirmed() {
+
         this.status = OrderInventoryReservationStatus.CONFIRMED;
+        this.updatedAt = LocalDateTime.now();
     }
 
     public void markReleased() {
+
         this.status = OrderInventoryReservationStatus.RELEASED;
+        this.updatedAt = LocalDateTime.now();
     }
 
     @PrePersist

@@ -4,11 +4,26 @@ spring:
     username: postgres
     password: 123
 
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:8180/realms/ecommerce
+
+  config:
+    import: optional:configserver:http://localhost:8888
+
   jpa:
     hibernate:
       ddl-auto: validate
 
   flyway:
     enabled: true
+
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: http://localhost:8761/eureka/
+
 server:
   port: 8081

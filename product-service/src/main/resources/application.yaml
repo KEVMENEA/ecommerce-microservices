@@ -5,8 +5,21 @@ spring:
   application:
     name: product-service
 
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: https://auth.meneakevit.store/realms/ecommerce
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+  config:
+    import: "optional:configserver:http://localhost:8888"
+
   datasource:
-    url: jdbc:postgresql://localhost:5433/product_db
+    url: jdbc:postgresql://127.0.0.1:5434/product_db
     username: postgres
     password: 123
 
@@ -17,6 +30,11 @@ spring:
 
   flyway:
     enabled: true
+
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: http://localhost:8761/eureka/
 
 management:
   endpoints:

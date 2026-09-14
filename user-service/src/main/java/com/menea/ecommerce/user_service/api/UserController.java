@@ -6,6 +6,8 @@ import com.menea.ecommerce.user_service.application.UserApplicationService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
@@ -30,6 +32,10 @@ public class UserController {
         return userService.getUserById(id);
     }
 
+    @GetMapping("/me")
+    public UserResponse getCurrentUser(@AuthenticationPrincipal Jwt jwt) {
+        return userService.getByKeycloakId(jwt.getSubject());
+    }
 }
 
 

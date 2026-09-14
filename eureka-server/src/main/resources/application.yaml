@@ -2,9 +2,33 @@ spring:
   application:
     name: eureka-server
 
+server:
+  port: 8761
+
 eureka:
   client:
     register-with-eureka: false
     fetch-registry: false
-server:
-  port: 8761
+
+  server:
+    enable-self-preservation: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+  endpoint:
+    health:
+      show-details: never
+logging:
+  level:
+    com.netflix.eureka: INFO
+    com.netflix.discovery: INFO
+
+  health:
+    readinessstate:
+      enabled: true
+    livenessstate:
+      enabled: true

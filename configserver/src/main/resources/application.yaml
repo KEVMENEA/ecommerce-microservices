@@ -1,0 +1,54 @@
+spring:
+  application:
+    name: configserver
+
+  profiles:
+    active: git
+  #    active: native
+
+
+  cloud:
+    config:
+      server:
+#        vault:
+#          host: localhost
+#          port: 8200
+#          scheme: http
+#          authentication: token
+#          token: myroot
+#          kv-version: 2
+#          backend: secret
+#          profile-separator: /
+        git:
+          uri: ${CONFIG_REPO_URI}
+          username: ${CONFIG_GIT_USERNAME}
+          password: ${CONFIG_GIT_TOKEN}
+          search-paths:
+            - product
+            - user
+            - api-gateway
+            - eureka-server
+          default-label: master
+          clone-on-start: true
+
+#          clone-on-start: true
+#          search-locations:
+#            - E:/Event-Driven Banking Platform/config-private/
+#            - E:/Event-Driven Banking Platform/config-private/{application}/
+
+
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+
+server:
+  port: 8888
+#eureka:
+#  client:
+#    register-with-eureka: false
+#    fetch-registry: false
+#

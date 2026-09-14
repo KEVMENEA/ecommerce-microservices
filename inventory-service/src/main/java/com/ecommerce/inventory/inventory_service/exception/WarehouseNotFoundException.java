@@ -1,4 +1,7 @@
 package com.ecommerce.inventory.inventory_service.exception;
 
-public class WarehouseNotFoundException {
+public class WarehouseNotFoundException extends RuntimeException{
+    public WarehouseNotFoundException(Long warehouseId) {
+        super("Warehouse not found with id = " + warehouseId);
+    }
 }
