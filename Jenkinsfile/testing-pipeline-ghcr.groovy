@@ -1,25 +1,30 @@
-stage('Login to GHCR') {
-    steps {
-        withCredentials([
-                usernamePassword(
-                        credentialsId: 'github-ghcr',
-                        usernameVariable: 'GHCR_USERNAME',
-                        passwordVariable: 'GHCR_TOKEN'
-                )
-        ]) {
-            sh '''
+pipeline {
+    agent any
+    {
+
+        {
+            stage('Login to GHCR') {
+                steps {
+                    withCredentials([
+                            usernamePassword(
+                                    credentialsId: 'github-ghcr',
+                                    usernameVariable: 'GHCR_USERNAME',
+                                    passwordVariable: 'GHCR_TOKEN'
+                            )
+                    ]) {
+                        sh '''
                 echo "$GHCR_TOKEN" | docker login ghcr.io \
                     -u "$GHCR_USERNAME" \
                     --password-stdin
             '''
-        }
-    }
-}
+                    }
+                }
+            }
 
-stage('Build Docker Images') {
-    steps {
-        script {
-            sh '''
+            stage('Build Docker Images') {
+                steps {
+                    script {
+                        sh '''
                 docker build \
                     -t ghcr.io/kevmenea/ecommerce-api-gateway:${BUILD_NUMBER} \
                     -t ghcr.io/kevmenea/ecommerce-api-gateway:latest \
@@ -55,13 +60,13 @@ stage('Build Docker Images') {
                     -t ghcr.io/kevmenea/ecommerce-config-server:latest \
                     ./configserver
             '''
-        }
-    }
-}
+                    }
+                }
+            }
 
-stage('Push Docker Images to GHCR') {
-    steps {
-        sh '''
+            stage('Push Docker Images to GHCR') {
+                steps {
+                    sh '''
             for IMAGE in \
                 ecommerce-api-gateway \
                 ecommerce-product-service \
@@ -75,11 +80,14 @@ stage('Push Docker Images to GHCR') {
                 docker push ghcr.io/kevmenea/$IMAGE:latest
             done
         '''
-    }
-}
+                }
+            }
 
-stage('Logout from GHCR') {
-    steps {
-        sh 'docker logout ghcr.io || true'
+            stage('Logout from GHCR') {
+                steps {
+                    sh 'docker logout ghcr.io || true'
+                }
+            }
+        }
     }
 }
