@@ -1,8 +1,18 @@
 stage('Test Production SSH') {
-    sshagent(credentials: ['ecommerce-prod-ssh']) {
+    withCredentials([
+            sshUserPrivateKey(
+                    credentialsId: 'ecommerce-prod-ssh',
+                    keyFileVariable: 'SSH_KEY',
+                    usernameVariable: 'SSH_USER'
+            )
+    ]) {
         sh '''
-            ssh -o StrictHostKeyChecking=no meneakev@34.97.42.240 \
-            "hostname && whoami && docker --version"
+            chmod 600 "$SSH_KEY"
+
+            ssh -i "$SSH_KEY" \
+                -o StrictHostKeyChecking=no \
+                "$SSH_USER@34.97.42.240" \
+                "hostname && whoami && docker --version"
         '''
     }
 }
