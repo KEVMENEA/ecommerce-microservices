@@ -6,21 +6,21 @@ node {
                         variable: 'SSH_KEY'
                 )
         ]) {
-            sh """
-                chmod 600 "\$SSH_KEY"
+            sh '''
+                chmod 600 "$SSH_KEY"
 
-                echo "Deploying Jenkins build ${BUILD_NUMBER} to ecommerce-prod..."
+                echo "Deploying latest images to ecommerce-prod..."
 
-                ssh -i "\$SSH_KEY" \
+                ssh -i "$SSH_KEY" \
                     -o IdentitiesOnly=yes \
                     -o StrictHostKeyChecking=no \
                     meneakev@34.97.42.240 \
                     'cd /opt/ecommerce &&
-                     IMAGE_TAG=${BUILD_NUMBER} docker compose --env-file .env.prod -f docker-compose.prod.yml pull &&
-                     IMAGE_TAG=${BUILD_NUMBER} docker compose --env-file .env.prod -f docker-compose.prod.yml up -d'
+                     docker compose --env-file .env.prod -f docker-compose.prod.yml pull &&
+                     docker compose --env-file .env.prod -f docker-compose.prod.yml up -d'
 
-                echo "Production build ${BUILD_NUMBER} deployment completed."
-            """
+                echo "Production deployment completed."
+            '''
         }
     }
 
