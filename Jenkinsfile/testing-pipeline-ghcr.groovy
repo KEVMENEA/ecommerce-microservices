@@ -1,10 +1,9 @@
 node {
     stage('Test Production SSH') {
         withCredentials([
-                sshUserPrivateKey(
-                        credentialsId: 'ecommerce-prod-ssh',
-                        keyFileVariable: 'SSH_KEY',
-                        usernameVariable: 'SSH_USER'
+                file(
+                        credentialsId: 'ecommerce-prod-key-file',
+                        variable: 'SSH_KEY'
                 )
         ]) {
             sh '''
@@ -16,8 +15,9 @@ node {
                 echo "Private key is valid."
 
                 ssh -i "$SSH_KEY" \
+                    -o IdentitiesOnly=yes \
                     -o StrictHostKeyChecking=no \
-                    "$SSH_USER@34.97.42.240" \
+                    meneakev@34.97.42.240 \
                     "hostname && whoami && docker --version"
             '''
         }
