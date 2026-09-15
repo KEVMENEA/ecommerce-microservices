@@ -10,6 +10,11 @@ node {
             sh '''
                 chmod 600 "$SSH_KEY"
 
+                echo "Testing private key..."
+                ssh-keygen -y -f "$SSH_KEY" > /dev/null
+
+                echo "Private key is valid."
+
                 ssh -i "$SSH_KEY" \
                     -o StrictHostKeyChecking=no \
                     "$SSH_USER@34.97.42.240" \
