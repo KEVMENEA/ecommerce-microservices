@@ -17,6 +17,7 @@ pipeline {
                 }
             }
         }
+
         stage('SonarQube - API Gateway') {
             steps {
                 dir('apigateway') {
@@ -31,7 +32,6 @@ pipeline {
             }
         }
 
-
         stage('Test Product Service') {
             steps {
                 dir('product-service') {
@@ -43,17 +43,18 @@ pipeline {
 
         stage('SonarQube - Product Service') {
             steps {
-                dir('productservice') {
+                dir('product-service') {
                     withSonarQubeEnv('sonarqube') {
                         sh '''
                             ./gradlew sonar \
                               -Dsonar.projectKey=ecommerce-product-service \
-                              -Dsonar.projectName=ecommerce-product-service 
+                              -Dsonar.projectName=ecommerce-product-service
                         '''
                     }
                 }
             }
         }
+
         stage('Test User Service') {
             steps {
                 dir('user-service') {
@@ -62,20 +63,20 @@ pipeline {
                 }
             }
         }
+
         stage('SonarQube - User Service') {
             steps {
-                dir('userservice') {
+                dir('user-service') {
                     withSonarQubeEnv('sonarqube') {
                         sh '''
                             ./gradlew sonar \
                               -Dsonar.projectKey=ecommerce-user-service \
-                              -Dsonar.projectName=ecommerce-user-service 
+                              -Dsonar.projectName=ecommerce-user-service
                         '''
                     }
                 }
             }
         }
-
 
         stage('Test Inventory Service') {
             steps {
@@ -88,17 +89,18 @@ pipeline {
 
         stage('SonarQube - Inventory Service') {
             steps {
-                dir('inventoryservice') {
+                dir('inventory-service') {
                     withSonarQubeEnv('sonarqube') {
                         sh '''
                             ./gradlew sonar \
                               -Dsonar.projectKey=ecommerce-inventory-service \
-                              -Dsonar.projectName=ecommerce-inventory-service 
+                              -Dsonar.projectName=ecommerce-inventory-service
                         '''
                     }
                 }
             }
         }
+
         stage('Test Order Service') {
             steps {
                 dir('order-service') {
@@ -107,14 +109,15 @@ pipeline {
                 }
             }
         }
+
         stage('SonarQube - Order Service') {
             steps {
-                dir('orderservice') {
+                dir('order-service') {
                     withSonarQubeEnv('sonarqube') {
                         sh '''
                             ./gradlew sonar \
                               -Dsonar.projectKey=ecommerce-order-service \
-                              -Dsonar.projectName=ecommerce-order-service 
+                              -Dsonar.projectName=ecommerce-order-service
                         '''
                     }
                 }
@@ -132,7 +135,7 @@ pipeline {
 
         stage('SonarQube - Eureka Server') {
             steps {
-                dir('eurekaserver') {
+                dir('eureka-server') {
                     withSonarQubeEnv('sonarqube') {
                         sh '''
                             ./gradlew sonar \
@@ -152,18 +155,17 @@ pipeline {
                 }
             }
         }
-    }
 
-
-    stage('SonarQube - Config Server') {
-        steps {
-            dir('configserver') {
-                withSonarQubeEnv('sonarqube') {
-                    sh '''
+        stage('SonarQube - Config Server') {
+            steps {
+                dir('configserver') {
+                    withSonarQubeEnv('sonarqube') {
+                        sh '''
                             ./gradlew sonar \
                               -Dsonar.projectKey=ecommerce-config-server \
                               -Dsonar.projectName=ecommerce-config-server
                         '''
+                    }
                 }
             }
         }
