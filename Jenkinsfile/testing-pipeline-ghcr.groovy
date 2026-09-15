@@ -23,4 +23,22 @@ node {
             '''
         }
     }
+
+    stage('Production Health Check') {
+        sh '''
+        echo "Waiting for production services to stabilize..."
+        sleep 30
+
+        echo "Checking API Gateway health..."
+
+        curl --fail --silent --show-error \
+            --retry 5 \
+            --retry-delay 10 \
+            --retry-all-errors \
+            https://ecommerce.meneakevit.store/actuator/health
+
+        echo ""
+        echo "Production health check passed."
+    '''
+    }
 }
