@@ -1,5 +1,5 @@
 node {
-    stage('Test Production SSH') {
+    stage('Deploy Production') {
         withCredentials([
                 file(
                         credentialsId: 'ecommerce-prod-key-file',
@@ -9,16 +9,17 @@ node {
             sh '''
                 chmod 600 "$SSH_KEY"
 
-                echo "Testing private key..."
-                ssh-keygen -y -f "$SSH_KEY" > /dev/null
-
-                echo "Private key is valid."
+                echo "Deploying to ecommerce-prod..."
 
                 ssh -i "$SSH_KEY" \
                     -o IdentitiesOnly=yes \
                     -o StrictHostKeyChecking=no \
                     meneakev@34.97.42.240 \
-                    "hostname && whoami && docker --version"
+                    'cd /opt/ecommerce &&
+                     docker compose --env-file .env.prod -f docker-compose.prod.yml pull &&
+                     docker compose --env-file .env.prod -f docker-compose.prod.yml up -d'
+
+                echo "Production deployment command completed."
             '''
         }
     }
