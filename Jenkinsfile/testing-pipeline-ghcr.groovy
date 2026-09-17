@@ -1,4 +1,17 @@
 node {
+    stage('Checkout') {
+        deleteDir()
+        checkout scm
+
+        sh '''
+            echo "Building Git commit:"
+            git rev-parse HEAD
+
+            echo "Gateway Config Client dependency:"
+            grep "spring-cloud-starter-config" apigateway/build.gradle
+        '''
+    }
+
     stage('Build Docker Images') {
         sh """
             echo "Building Docker images for release ${BUILD_NUMBER}..."
