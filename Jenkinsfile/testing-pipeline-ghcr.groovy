@@ -1,4 +1,67 @@
 node {
+    stage('Build Docker Images') {
+        sh """
+            echo "Building Docker images for release ${BUILD_NUMBER}..."
+
+            docker build \
+                -t ghcr.io/kevmenea/ecommerce-api-gateway:${BUILD_NUMBER} \
+                ./apigateway
+
+            docker build \
+                -t ghcr.io/kevmenea/ecommerce-product-service:${BUILD_NUMBER} \
+                ./product-service
+
+            docker build \
+                -t ghcr.io/kevmenea/ecommerce-user-service:${BUILD_NUMBER} \
+                ./user-service
+
+            docker build \
+                -t ghcr.io/kevmenea/ecommerce-inventory-service:${BUILD_NUMBER} \
+                ./inventory-service
+
+            docker build \
+                -t ghcr.io/kevmenea/ecommerce-order-service:${BUILD_NUMBER} \
+                ./order-service
+
+            docker build \
+                -t ghcr.io/kevmenea/ecommerce-eureka-server:${BUILD_NUMBER} \
+                ./eureka-server
+
+            docker build \
+                -t ghcr.io/kevmenea/ecommerce-config-server:${BUILD_NUMBER} \
+                ./configserver
+
+            echo "All Docker images built successfully."
+        """
+    }
+
+    stage('Push Docker Images to GHCR') {
+        withCredentials([
+                usernamePassword(
+                        credentialsId: 'github-ghcr',
+                        usernameVariable: 'GHCR_USERNAME',
+                        passwordVariable: 'GHCR_TOKEN'
+                )
+        ]) {
+            sh """
+                echo "\$GHCR_TOKEN" | docker login ghcr.io \
+                    -u "\$GHCR_USERNAME" \
+                    --password-stdin
+
+                docker push ghcr.io/kevmenea/ecommerce-api-gateway:${BUILD_NUMBER}
+                docker push ghcr.io/kevmenea/ecommerce-product-service:${BUILD_NUMBER}
+                docker push ghcr.io/kevmenea/ecommerce-user-service:${BUILD_NUMBER}
+                docker push ghcr.io/kevmenea/ecommerce-inventory-service:${BUILD_NUMBER}
+                docker push ghcr.io/kevmenea/ecommerce-order-service:${BUILD_NUMBER}
+                docker push ghcr.io/kevmenea/ecommerce-eureka-server:${BUILD_NUMBER}
+                docker push ghcr.io/kevmenea/ecommerce-config-server:${BUILD_NUMBER}
+
+                docker logout ghcr.io
+
+                echo "All Docker images pushed successfully."
+            """
+        }
+    }
     stage('Deploy Production') {
         withCredentials([
                 file(
