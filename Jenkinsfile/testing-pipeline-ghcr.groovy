@@ -106,42 +106,63 @@ node {
 
     stage('Production Health Check') {
         sh '''
-            echo "Waiting for production services to stabilize..."
-            sleep 30
+        HEALTH_URL="https://ecommerce.meneakevit.store/actuator/health"
 
-            HEALTH_URL="https://ecommerce.meneakevit.store/actuator/health"
+        echo "Waiting for production to become healthy..."
 
-            echo "Checking API Gateway and Eureka registrations..."
+        MAX_ATTEMPTS=18
+        SLEEP_SECONDS=10
 
-            HEALTH_RESPONSE=$(curl \
+        HEALTH_RESPONSE=""
+
+        for ATTEMPT in $(seq 1 $MAX_ATTEMPTS)
+        do
+            echo "Health check attempt $ATTEMPT/$MAX_ATTEMPTS..."
+
+            if HEALTH_RESPONSE=$(curl \
                 --fail \
                 --silent \
                 --show-error \
-                --retry 5 \
-                --retry-delay 10 \
-                --retry-all-errors \
+                --connect-timeout 5 \
+                --max-time 10 \
                 "$HEALTH_URL")
+            then
+                echo "API Gateway is responding."
+                break
+            fi
 
-            echo "$HEALTH_RESPONSE"
+            if [ "$ATTEMPT" -eq "$MAX_ATTEMPTS" ]; then
+                echo "ERROR: Production did not become healthy."
+                exit 1
+            fi
 
-            for SERVICE in \
-                api-gateway \
-                product-service \
-                user-service \
-                inventory-service \
-                order-service
-            do
-                echo "Checking $SERVICE..."
+            sleep $SLEEP_SECONDS
+        done
 
-                echo "$HEALTH_RESPONSE" | grep -q "\\"$SERVICE\\"" || {
-                    echo "ERROR: $SERVICE is not registered in Eureka."
-                    exit 1
-                }
-            done
+        echo "$HEALTH_RESPONSE"
 
-            echo ""
-            echo "All required services are registered."
-            echo "Production health check passed."
-        '''
+        echo "Checking Eureka registrations..."
+
+        for SERVICE in \
+            api-gateway \
+            product-service \
+            user-service \
+            inventory-service \
+            order-service
+        do
+            echo "Checking $SERVICE..."
+
+            echo "$HEALTH_RESPONSE" | grep -q "\\"$SERVICE\\"" || {
+                echo "ERROR: $SERVICE is not registered in Eureka."
+                exit 1
+            }
+
+            echo "$SERVICE registered."
+        done
+
+        echo ""
+        echo "All required services are registered."
+        echo "Production health check passed."
+    '''
     }
 }
